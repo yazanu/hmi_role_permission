@@ -5,10 +5,20 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Branch;
-use Gate;
+
 
 class ProductController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('permission:product-index|product-create|product-edit|product-show|product-delete', ['only' => ['index']]);
+        $this->middleware('permission:product-create', ['only' => ['create', 'store']]);
+        $this->middleware('permission:product-edit', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:product-show', ['only' => ['show']]);
+        $this->middleware('permission:product-delete', ['only' => ['destroy']]);
+        
+    }
     /**
      * Display a listing of the resource.
      */
@@ -23,13 +33,8 @@ class ProductController extends Controller
      */
     public function create()
     {
-        if(Gate::allows('isAdmin') || Gate::allows('isManager')){
-            $branches = Branch::all();
-            return view('product.create', compact('branches'));
-        }else {
-            abort(401, 'Unauthorized');
-        }
-        
+        $branches = Branch::all();
+        return view('product.create', compact('branches'));
     }
 
     /**
@@ -37,26 +42,22 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        if(Gate::allows('isAdmin') || Gate::allows('isManager')){
-            $request->validate([
-                'name' => 'required',
-                'price' => 'required',
-                'qty' => 'required',
-                'description' => 'required',
-            ]);
-            $product = Product::create([
-                'name' => $request->name,
-                'price' => $request->price,
-                'qty' => $request->qty,
-                'branch_id' => $request->branch_id,
-                'description' => $request->description,
-            ]);
-    
-            return redirect()->route('products.index')
-                        ->with('success','Product created successfully.');
-        }else{
-            abort(401, 'Unauthorized');
-        }
+        $request->validate([
+            'name' => 'required',
+            'price' => 'required',
+            'qty' => 'required',
+            'description' => 'required',
+        ]);
+        $product = Product::create([
+            'name' => $request->name,
+            'price' => $request->price,
+            'qty' => $request->qty,
+            'branch_id' => $request->branch_id,
+            'description' => $request->description,
+        ]);
+
+        return redirect()->route('products.index')
+                    ->with('success','Product created successfully.');
         
     }
 
@@ -66,8 +67,6 @@ class ProductController extends Controller
     public function show(string $id)
     {
         $product = Product::find($id);
-        $this->authorize('view', $product);
-        
         return view('product.show',compact('product'));
     }
 
@@ -76,13 +75,9 @@ class ProductController extends Controller
      */
     public function edit(string $id)
     {
-        if(Gate::allows('isAdmin') || Gate::allows('isManager')){
-            $branches = Branch::all();
-            $product = Product::find($id);
-            return view('product.edit',compact('product', 'branches'));
-        }else {
-            abort(401, 'Unauthorized');
-        }
+        $branches = Branch::all();
+        $product = Product::find($id);
+        return view('product.edit',compact('product', 'branches'));
         
     }
 
@@ -91,23 +86,18 @@ class ProductController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        if(Gate::allows('isAdmin') || Gate::allows('isManager')){
-            $product = Product::find($id);
-            $request->validate([
-                'name' => 'required',
-                'price' => 'required',
-                'qty' => 'required',
-                'description' => 'required',
-            ]);
-          
-            $product->update($request->all());
-          
-            return redirect()->route('products.index')
-                            ->with('success','Product updated successfully');
-        }else {
-            
-            abort(401, 'Unauthorized');
-        }
+        $product = Product::find($id);
+        $request->validate([
+            'name' => 'required',
+            'price' => 'required',
+            'qty' => 'required',
+            'description' => 'required',
+        ]);
+        
+        $product->update($request->all());
+        
+        return redirect()->route('products.index')
+                        ->with('success','Product updated successfully');
         
     }
 
@@ -116,15 +106,11 @@ class ProductController extends Controller
      */
     public function destroy(string $id)
     {
-        if(Gate::allows('isAdmin')){
-            $product = Product::find($id);
-            $product->delete();
-           
-            return redirect()->route('products.index')
-                            ->with('success','Product deleted successfully');
-        }else {
-            abort(401, 'Unauthorized');
-        }
+        $product = Product::find($id);
+        $product->delete();
+        
+        return redirect()->route('products.index')
+                        ->with('success','Product deleted successfully');
         
     }
 }

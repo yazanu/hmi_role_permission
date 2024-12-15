@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use DB;
+use App\Models\Permission;
 
 class PermissionController extends Controller
 {
@@ -31,7 +33,40 @@ class PermissionController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $role_id = $request->role;
+        $routes = $request->except('_token', 'role');
+        $data = [];
+
+        foreach($routes as $route){
+            $row['role_id'] = $role_id;
+            $row['route_name'] = $route;
+            array_push($data, $row);
+        }
+
+        $status = true;
+        DB::beginTransaction();
+        try{
+            Permission::where('role_id', $role_id)->delete();
+            $result = Permission::insert($data);
+
+            if(!$result){
+                DB::rollback();
+                $status = false;
+            }
+
+            DB::commit();
+        }catch(\Exception $e){
+            DB::rollback();
+            $status = false;
+        }
+
+        if($status){
+            session(['success' => 'Permission was saved successfully']);
+        }else {
+            session(['error' => 'Permission can not save']);
+        }
+
+        return view('roles.index', ['role_id' => $role_id]);
     }
 
     /**
